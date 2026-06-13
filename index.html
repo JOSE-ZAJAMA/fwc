@@ -79,21 +79,31 @@
         async function cargarFixtureMundial() {
 async function cargarFixtureMundial() {
             try {
-                // Usamos un proxy CORS gratuito para saltar el bloqueo de Football-Data
                 const proxy = "https://cors-anywhere.herokuapp.com/";
                 const urlBase = "https://api.football-data.org/v4/competitions/";
 
-                // 1. Conseguir partidos de hoy (añadiendo el proxy al principio)
+                // 1. Conseguir todos los partidos del Mundial (Lógica simplificada)
                 const respuestaPartidos = await fetch(`${proxy}${urlBase}${WC_ID}/matches`, opciones);
                 const datosPartidos = await respuestaPartidos.json();
                 
-                // Filtrar solo los partidos que corresponden a la fecha de hoy
-                const hoy = new Date().toISOString().split('T')[0];
-                const partidosHoy = datosPartidos.matches.filter(m => m.utcDate.startsWith(hoy));
+                // Si la API no devuelve partidos hoy, tomamos los últimos disponibles del torneo para que no quede vacío
+                let partidosParaMostrar = datosPartidos.matches;
                 
-                dibujarPartidos(partidosHoy);
+                // Intentamos filtrar por la fecha actual
+                const hoy = new Date().toISOString().split('T')[0];
+                const filtradosHoy = datosPartidos.matches.filter(m => m.utcDate.startsWith(hoy));
+                
+                // Si hay partidos hoy, mostramos solo esos; si no, mostramos los más recientes del fixture
+                if (filtradosHoy.length > 0) {
+                    partidosParaMostrar = filtradosHoy;
+                } else {
+                    // Tomamos los últimos 4 partidos del torneo para rellenar la pantalla visualmente
+                    partidosParaMostrar = datosPartidos.matches.filter(m => m.status === 'FINISHED' || m.status === 'IN_PLAY').slice(-4);
+                }
+                
+                dibujarPartidos(partidosParaMostrar);
 
-                // 2. Conseguir tabla de posiciones (añadiendo el proxy al principio)
+                // 2. Conseguir tabla de posiciones
                 const respuestaTabla = await fetch(`${proxy}${urlBase}${WC_ID}/standings`, opciones);
                 const datosTabla = await respuestaTabla.json();
                 
