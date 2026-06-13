@@ -77,9 +77,14 @@
         };
 
         async function cargarFixtureMundial() {
+async function cargarFixtureMundial() {
             try {
-                // 1. Conseguir partidos de hoy
-                const respuestaPartidos = await fetch(`https://api.football-data.org/v4/competitions/${WC_ID}/matches`, opciones);
+                // Usamos un proxy CORS gratuito para saltar el bloqueo de Football-Data
+                const proxy = "https://cors-anywhere.herokuapp.com/";
+                const urlBase = "https://api.football-data.org/v4/competitions/";
+
+                // 1. Conseguir partidos de hoy (añadiendo el proxy al principio)
+                const respuestaPartidos = await fetch(`${proxy}${urlBase}${WC_ID}/matches`, opciones);
                 const datosPartidos = await respuestaPartidos.json();
                 
                 // Filtrar solo los partidos que corresponden a la fecha de hoy
@@ -88,8 +93,8 @@
                 
                 dibujarPartidos(partidosHoy);
 
-                // 2. Conseguir tabla de posiciones
-                const respuestaTabla = await fetch(`https://api.football-data.org/v4/competitions/${WC_ID}/standings`, opciones);
+                // 2. Conseguir tabla de posiciones (añadiendo el proxy al principio)
+                const respuestaTabla = await fetch(`${proxy}${urlBase}${WC_ID}/standings`, opciones);
                 const datosTabla = await respuestaTabla.json();
                 
                 dibujarTablas(datosTabla.standings);
@@ -98,71 +103,6 @@
                 console.error("Error cargando los datos:", error);
                 document.getElementById('lista-partidos').innerHTML = "Error al conectar con el servidor de datos.";
             }
-        }
-
-        function dibujarPartidos(partidos) {
-            const contenedor = document.getElementById('lista-partidos');
-            contenedor.innerHTML = "";
-
-            if (partidos.length === 0) {
-                contenedor.innerHTML = "<p class='estado'>No hay partidos programados para hoy.</p>";
-                return;
-            }
-
-            partidos.forEach(p => {
-                const golesLocal = p.score.fullTime.home !== null ? p.score.fullTime.home : "-";
-                const golesVisitante = p.score.fullTime.away !== null ? p.score.fullTime.away : "-";
-                const estadoMatch = p.status === 'FINISHED' ? 'Finalizado' : (p.status === 'IN_PLAY' ? 'En Vivo' : 'Programado');
-
-                contenedor.innerHTML += `
-                    <div class="partido">
-                        <div class="equipo" style="text-align: right;">${p.homeTeam.name}</div>
-                        <div class="marcador">${golesLocal} - ${golesVisitante}</div>
-                        <div class="equipo" style="text-align: left;">${p.awayTeam.name}</div>
-                    </div>
-                    <div class="estado">${estadoMatch}</div>
-                `;
-            });
-        }
-
-        function dibujarTablas(grupos) {
-            const contenedor = document.getElementById('tabla-posiciones');
-            contenedor.innerHTML = "";
-
-            // Para no saturar, mostraremos solo los primeros grupos o el que esté jugando. 
-            // Aquí recorremos los grupos que devuelve el Mundial
-            grupos.forEach(g => {
-                let filasHtml = "";
-                g.table.forEach(equipo => {
-                    filasHtml += `
-                        <tr>
-                            <td class="${equipo.position <= 2 ? 'pos-lider' : ''}">${equipo.position}</td>
-                            <td style="text-align: left;">${equipo.team.name}</td>
-                            <td>${equipo.playedGames}</td>
-                            <td><b>${equipo.points}</b></td>
-                            <td>${equipo.goalDifference}</td>
-                        </tr>
-                    `;
-                });
-
-                contenedor.innerHTML += `
-                    <h3 style="color: #94a3b8; text-align: left; margin-top: 20px;">${g.group.replace('_', ' ')}</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 10%">Pos</th>
-                                <th style="text-align: left;">Selección</th>
-                                <th style="width: 15%">PJ</th>
-                                <th style="width: 15%">Pts</th>
-                                <th style="width: 15%">DG</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${filasHtml}
-                        </tbody>
-                    </table>
-                `;
-            });
         }
 
         // Ejecutar la carga al abrir la web
